@@ -14,7 +14,7 @@ library(tm)
 set.seed(1234)
 
 # Read the data
-setwd("E:/data analytics/datasets")
+setwd("C:\\Users\\Thimma Reddy\\Documents\\GitHub\\datascience\\datasets")
 sms_raw = read.table(unz("smsspamcollection.zip","SMSSpamCollection"),
                       header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
 # Explore the dataset
@@ -35,14 +35,14 @@ inspect(sms_corpus[1:10])
 #1) Adding content_transformer avoids the type conversion issue with non-standard transformations
 #2) Add the tm_map(PlainTextDocument) after all the cleaning is done
 
-sms_corpus_clean = sms_corpus %>%
-  tm_map(content_transformer(tolower)) %>% 
-  tm_map(removeNumbers) %>%
-  tm_map(removePunctuation) %>%
-  tm_map(removeWords, stopwords(kind="en")) %>%
-  tm_map(stripWhitespace) %>%
-  tm_map(stemDocument) 
+sms_corpus_clean = tm_map(sms_corpus, content_transformer(tolower))
+sms_corpus_clean = tm_map(sms_corpus_clean, removeNumbers)
+sms_corpus_clean = tm_map(sms_corpus_clean, removePunctuation)
+sms_corpus_clean = tm_map(sms_corpus_clean, removeWords, stopwords(kind="en")) 
+sms_corpus_clean = tm_map(sms_corpus_clean, stripWhitespace)
+sms_corpus_clean = tm_map(sms_corpus_clean, stemDocument) 
 
+as.character(sms_corpus_clean[[1]])
 inspect(sms_corpus_clean[1:10])
 
 sms_corpus_clean = DocumentTermMatrix(sms_corpus_clean,control=list(minWordLength=2))
@@ -56,7 +56,7 @@ convert_counts <- function(x) {
   x = ifelse(x > 0, 1, 0)
   x = factor(x, levels = c(0, 1), labels = c("No", "Yes"))
 }
-sms_corpus_clean_binary= sms_corpus_clean %>% apply(MARGIN=2, FUN=convert_counts)
+sms_corpus_clean_binary =  apply(sms_corpus_clean, MARGIN=2, FUN=convert_counts)
 dim(sms_corpus_clean_binary)
 sms_corpus_clean_binary[1:10,1:10]
 
@@ -64,16 +64,10 @@ sms_corpus_clean_binary[1:10,1:10]
 #Train the model
 ctrl = trainControl(method="cv", 10)
 sms_model = train(sms_corpus_clean_binary, sms_raw$type, method="nb", trControl=ctrl)
+sms_model$finalModel$tables
+sms_model$finalModel
 sms_model
 
-
-ctrl = trainControl(method="cv", 10)
-
-sms_model = train(sms_corpus_clean_binary, sms_raw$type, method="nb", trControl=ctrl)
-str(sms_model)
-sms_model$trainingData
-sms_model$resample
-sms_model$time
 
 #Test the model
 sms_predict = predict(sms_model, sms_corpus_clean_binary, type="prob")
